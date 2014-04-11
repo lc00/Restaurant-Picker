@@ -1,0 +1,584 @@
+<DOCTYPE! HTML>
+<html>
+<head>
+
+	<meta charset="utf-8">
+	
+	<title>Restaurant Picker</title>
+	<meta name="description: content="Restaurant Picker">
+	<link rel="stylesheet" type="text/css" href="stylesheet.css" />
+	<script src="parse-1.2.17.min.js"></script>	
+	<script src="jquery-1.11.0.js"></script>
+	
+	<script>
+		Parse.initialize("KAqudrDZKbnMtKypHCrM6TzQXPN3DjK0gIVjvp0T", "64agm8hc2qzjuYNsgMARtVGv90NJ8itvEHISTiO0");
+		
+		var arrayOfRestObj = [];
+		var answer;
+		
+		function submitSignUpInfo() {
+			var user = new Parse.User();
+			user.set("username", $("#signUpUserName").val());
+			user.set("password", $("#signUpPassWord").val());
+			user.signUp( null, {
+				success: function(user) {
+					userIsSignedUp(user);
+				},
+				error: function(user, error){
+					alert(error.message);
+				}
+			});
+			//return $("#signUpUserName").val();
+		}
+	
+		function queryFromParseAndAddRestaurant() {
+			var RestaurantObj = Parse.Object.extend("RestaurantObj");
+			var query = new Parse.Query(RestaurantObj);
+			var listing;
+	
+			query.each(function(result){
+						
+				addRestaurantToTable(generateTableRowHtml(result));
+				addRestaurantToarrayOfRestObj(result);
+			
+			}).then(function(){
+				var currentUser = Parse.User.current();
+				if (currentUser) {
+					userIsLoggedIn(currentUser);
+				}
+			},
+			function(error) {
+				alert(error);
+			});	
+			
+			
+											
+		}
+
+		function generateTableRowHtml(data){
+			var row;
+			//note that the id="data.id" in the <tr> tag is for identifying which table row(displaying the restaurant information
+			//the user wants to edit and therefore the table row gets edited/updated 
+			row = "<tr id='" + data.id + "'>" + "<td>" + data.attributes.name  + "</td>" + "<td>" + data.attributes.rating + "</td>";
+			row += "<td>" + data.attributes.region + "</td>" + "<td>" + data.attributes.cuisine + "</td>";
+			row += "<td>" + data.attributes.comment + "</td>" + "<td class='noBorder'>";
+			row += "<input type='button' class='editRestaurantButton' value ='edit restaurant' onclick='editRestaurant(\"" + data.id + "\");' />" + "</td>" + "</tr>";			
+			return row;
+		}
+		
+		
+		function editRestaurant(id){
+			hideFilterCriteria();
+			hideTableForRestaurant();
+			showAddOrEditRestaurantPage();
+			$("#modeToAddRestaurant").val(id);
+		
+			getRestaurantAndPopulateEditPage(id);
+		}
+		
+		function getRestaurantAndPopulateEditPage(id) {
+
+			arrayOfRestObj.forEach(function(object) {
+				if ( object.id === id)
+					answer = object;
+			});
+			
+			$("#restaurantName").val(answer.attributes.name);
+ 			$("#restaurantRating").val(answer.attributes.rating);
+			$("#restaurantRegion").val(answer.attributes.region);
+			$("#" + answer.attributes.cuisine).prop('checked',true);
+			$("#restaurantComment").val(answer.attributes.comment);
+		
+		}
+		
+		function updateRestaurantToParse() {
+			var RestaurantObj = Parse.Object.extend("RestaurantObj");
+			var restaurantObj = new RestaurantObj;
+					
+				restaurantObj.id = answer.id;
+				restaurantObj.save({
+					name:  $("#restaurantName").val(),
+					rating:  $("#restaurantRating").val(),
+					region:  $("#restaurantRegion").val(),
+					cuisine:  $("input:radio[name=cuisine]:checked").val(),
+					comment:  $("#restaurantComment").val()						
+				}).then(function(result) {
+				
+				var region = $(".regionFilter").is(":checked");				
+				var cuisine = $("input:radio[name=cuisineFilter]:checked").val();
+				
+		 		if ( region === false && cuisine === undefined ) {
+					$("#" + result.id).replaceWith(generateTableRowHtml(result));
+					showEditButton();
+				}			
+				else
+					applyFilter();	
+					
+					
+				updateRestaurantToArrayOfRestObj(result);
+				exitAddNewRestaurant();
+				},
+				function (error) {
+					alert(error);
+				});
+		}
+		
+		function updateRestaurantToArrayOfRestObj(result) {
+			for (var i = 0; i < arrayOfRestObj.length; i++) {
+				if ( arrayOfRestObj[i].id === result.id ) 
+					arrayOfRestObj.splice(i, 1, result);
+			}
+		
+		}
+		
+		function enterAddNewRestaurant() {
+			hideFilterCriteria();
+			hideTableForRestaurant();
+			showAddOrEditRestaurantPage();
+		}
+		
+		function exitAddNewRestaurant(){
+			hideAddOrEditRestaurantPage();
+			showFilterCriteria();
+			showTableForRestaurant();
+			
+			//need to clear out the input boxes and modeToAddRestaurant in addOrEditRestaurantPage;
+			$("#restaurantName").val("");
+			$("#restaurantRating").val("");
+			$("#restaurantRegion").val("");
+			$("input:radio[name=cuisine]").prop('checked',false);
+			$("#restaurantComment").val("");
+			$("#restaurantComment").val("");
+			
+			$("#modeToAddRestaurant").val("");
+
+
+		}
+		
+		
+		function submitRestaurant() {
+			if($("#restaurantName").val() !== "" && $("#restaurantRating").val() !== "" 
+			&& $("#restaurantRegion").val() !== "" && $("input:radio[name=cuisine]:checked").length > 0) {
+									
+				if ( $("#modeToAddRestaurant").val() == "" )
+					createNSendRestaurantToParse();
+				else
+					updateRestaurantToParse();				
+			}
+			else
+				alert("Please fill out at least the name, rating, region, and cuisine");
+			
+		}
+
+		function createNSendRestaurantToParse() {
+			var RestaurantObj = Parse.Object.extend("RestaurantObj");
+			var restaurantObj = new RestaurantObj;
+			
+			restaurantObj.save({
+				name:  $("#restaurantName").val(),
+				rating:  $("#restaurantRating").val(),
+				region:  $("#restaurantRegion").val(),
+				cuisine:  $("input:radio[name=cuisine]:checked").val(),	
+				comment:  $("#restaurantComment").val()					
+			}).then(function(result) {
+			
+				var region = $(".regionFilter").is(":checked");				
+				var cuisine = $("input:radio[name=cuisineFilter]:checked").val();
+				
+		 		if ( region === false && cuisine === undefined ) {
+					addRestaurantToTable(generateTableRowHtml(result));
+					showEditButton();
+				}
+				else {
+					applyFilter();
+				}
+				
+				addRestaurantToarrayOfRestObj(result);
+				exitAddNewRestaurant();
+			}, 
+			function (error){
+				alert(error);
+			});	
+		}
+		
+		function addRestaurantToarrayOfRestObj(obj){
+			arrayOfRestObj.push(obj);
+		}
+				
+		function addRestaurantToTable(restaurant) {
+			$("#tableForRestaurant").append(restaurant);
+		}
+		
+		function userIsLoggedIn(name) {
+			clearLogInInformation();
+			hideLogInAndSignUp();
+			emptyUserName()
+			showUserLoggedIn(name);
+			showEditButton();
+		}
+		
+		function clearLogInInformation() {
+			$("#userName").val("");
+			$("#passWord").val("");
+		}
+		
+		function showAddOrEditRestaurantPage() {
+			$("#addOrEditRestaurantPage").show();
+		}
+		
+		function hideAddOrEditRestaurantPage() {
+			$("#addOrEditRestaurantPage").hide();
+
+		}
+		
+		function showLogInAndSignUp() {
+			$("#logIn_signUp").show();			
+		}
+		
+		function hideLogInAndSignUp() {
+			$("#logIn_signUp").hide();
+		}
+
+		function showUserLoggedIn(name) {
+			if (typeof(name) != "object")
+				$("#welcomeUser").append("Welcome " + name);
+			else
+				$("#welcomeUser").append("Welcome " + name.attributes.username);
+	
+			$("#loggedIn").show();	
+		}
+		
+		function hideUserLoggedIn() {
+			$("#loggedIn").hide();	
+		}
+		
+		function emptyUserName() {
+			$("#welcomeUser").empty();
+		}
+				
+		function showEditButton(){
+			$(".editRestaurantButton").show();
+		}
+		
+		function hideEditButton(){
+			$(".editRestaurantButton").hide();
+		}
+		
+		function logIn() {
+			var name = $("#userName").val();
+			var password = $("#passWord").val();
+			Parse.User.logIn(name, password,
+				{
+					success: function(user){
+						userIsLoggedIn(user);	
+						
+					},
+					error: function(user, error) {
+						alert(error.message);
+					}
+				}
+			);
+					
+		}
+		
+		function logOut() {
+			Parse.User.logOut();
+			userIsLoggedOut();
+		}
+		
+		function userIsLoggedOut() {
+		emptyUserName();
+		hideUserLoggedIn();
+		showLogInAndSignUp();
+		hideEditButton();
+		
+		}
+		
+		function userSignUp() {
+			hideFilterCriteria();
+			hideTableForRestaurant();
+			$("#overlay").fadeIn();
+		}
+		
+		function userIsSignedUp(user){
+			$("#overlay").fadeOut();
+			showFilterCriteria();
+			showTableForRestaurant();
+			userIsLoggedIn(user);
+			
+		}
+		
+		function hideFilterCriteria(){
+			$("#filterCriteria").hide();
+		}
+		
+		function showFilterCriteria(){
+			$("#filterCriteria").show();
+		}		
+		
+		function hideTableForRestaurant(){
+			$("#tableForRestaurant").hide();
+		}
+		
+		function showTableForRestaurant(){
+			$("#tableForRestaurant").show();
+		}		
+		
+		function emptyTableContent() {
+			$("#tableForRestaurant").empty();
+		}
+		
+		
+		
+		function applyFilter() {
+			var RestaurantObj = Parse.Object.extend("RestaurantObj");
+			var query = new Parse.Query(RestaurantObj);
+
+			var region = $("input:checkbox:checked").map(function() {
+				return $(this).val();		
+			}).get();
+			
+			
+			var cuisine = $("input:radio[name=cuisineFilter]:checked").val();
+
+			if ( region.length !== 0 ) 
+				query.containedIn("region", region);
+				
+			if ( cuisine !== undefined ) 
+				query.equalTo("cuisine", cuisine );
+
+				emptyTableContent();
+				$("#tableForRestaurant").append(generateTableHeaderHtml());
+				
+				query.each(function(result) {
+					addRestaurantToTable(generateTableRowHtml(result));	
+					showEditButton();
+
+				}).then( null, 
+				function(error) {
+					alert(error);
+				});
+				
+		}
+			
+		function generateTableHeaderHtml(){
+			var row;
+			row = "<tr>" + "<td>" + "Restaurant Name" + "</td>" + "<td>" + "Rating" + "</td>";
+			row += "<td>" + "Region" + "</td>" + "<td>" + "Cuisine" + "</td>";
+			row += "<td>" + "Comments" + "</td>" + "</tr>";
+			return row;
+		}
+		
+		function deleteRestaurant() {		
+		    var restaurantId = $("#modeToAddRestaurant").val();	
+			var RestaurantObj = Parse.Object.extend("RestaurantObj");
+			var restaurantObj = new RestaurantObj;
+			var index;
+		
+			restaurantObj.id = restaurantId;
+			restaurantObj.destroy({
+				success: function(restaurant) {					
+					$("#" + restaurantId).remove();
+				
+					for (var i = 0; i < arrayOfRestObj.length; i++) {
+						if (arrayOfRestObj[i].id === restaurantId ) {
+							index = i;
+							break;										
+						}						
+					}
+				
+					arrayOfRestObj.splice(index, 1);
+								
+					exitAddNewRestaurant();
+				},
+				error: function(restaurant, error) {
+					alert(error);
+				}
+			});
+		
+		
+		}
+
+		function removeFilter() {
+			$("input:checkbox").prop('checked', false);
+			$("input:radio[name=cuisineFilter]").prop('checked', false);
+			
+			emptyTableContent();
+			$("#tableForRestaurant").append(generateTableHeaderHtml());
+
+			queryFromParseAndAddRestaurant();
+		
+		}
+	
+			
+		$(document).ready(function() {
+			queryFromParseAndAddRestaurant();
+					
+			$("#filterByRegion").change(applyFilter);
+				
+			$("#filterByCuisine").change(applyFilter);
+			
+
+		});
+
+	</script>
+</head>
+
+
+<body>
+
+	<div id="header">
+		<ul>
+		  <div id="logos">
+			<li id="websiteLogo">Yummmmmmmmmmmmm</li>
+			<li id="restaurantPickerLogo"><img src="restaurant-logo-18988493.jpg" alt="restaurant picker logo" width=100px height=100px ></li>
+		  </div>
+ 
+ 		  <form id="userInfo">
+ 		  	<div id="logIn_signUp">
+				<li>User Name:<input type="text" id="userName"></li>	<br />
+				<li>Password:<input type="text"	id="passWord"></li>
+			
+				<input id="logInSubmit" type="button" value="Log In" onclick="logIn()" />	<br /><br />
+
+				<li>New User: <input id="signUpSubmit" type="button" value="Sign Up" onclick="userSignUp()" /></li> <br /><br />
+		    </div>
+		   
+		    <div id="loggedIn">
+				<li><span id="welcomeUser"></span></li>
+				<input id="userLogOut"type="button" value="Log Out" onclick="logOut()"/>  <br /><br />
+				<li><input id="addRestaurantButton" type="button" value="Add New Restaurant" onclick="enterAddNewRestaurant()"/></li>
+		    </div>
+		  </form>
+ 		</ul>
+ 	</div>
+ 	<!-- 
+	  end of #header
+	 -->
+ 		
+ 	<div id="content">
+ 	    <div id="filterCriteria">
+		  <h3>Filter:</h3>
+			<div id="region">
+				Region:
+ 				<ul id="filterByRegion">
+ 					<li><input type="checkbox" class="regionFilter" value="East Bay"/><span>East Bay</span></li>
+ 					<li><input type="checkbox" class="regionFilter" value="San Francisco"/><span>San Francisco</span></li>
+ 					<li><input type="checkbox" class="regionFilter" value="South Bay"/><span>South Bay</span></li>
+ 					<li><input type="checkbox" class="regionFilter" value="Half Moon Bay"/><span>Half Moon Bay</span></li>
+ 					<li><input type="checkbox" class="regionFilter" value="Milpitas"/><span>Milpitas</span></li>
+ 				</ul>
+			</div>
+	
+			<div id="cuisine">
+			  Cuisine:
+			  <form id="filterByCuisine">
+				<input type="radio" name="cuisineFilter" value="Indian" />Indian
+				<input type="radio" name="cuisineFilter" value="Chinese" />Chinese
+				<input type="radio" name="cuisineFilter" value="Fusion" />Fusion
+				<input type="radio" name="cuisineFilter" value="Italian" />Italian
+				<input type="radio" name="cuisineFilter" value="Mexican" />Mexican
+				<input type="radio" name="cuisineFilter" value="Thai" />Thai
+				<input type="radio" name="cuisineFilter" value="Morrocan" />Morrocan
+				<input type="radio" name="cuisineFilter" value="Cafe" />Cafe
+				<input type="radio" name="cuisineFilter" value="Japanese" />Japanese	
+				<input type="radio" name="cuisineFilter" value="French" />French
+				<input type="radio" name="cuisineFilter" value="Spanish" />Spanish
+				<input type="radio" name="cuisineFilter" value="Lebanese" />Lebanese
+				<input type="radio" name="cuisineFilter" value="Greek" />Greek
+				<input type="radio" name="cuisineFilter" value="American" />American
+				<input type="radio" name="cuisineFilter" value="Others" />Others
+			  </form>
+			</div>
+			  <input id="removeFilterButton" type="button" name="noFilters" value="Remove Filters" onclick="removeFilter()" /> <br /><br />
+			<div>
+			</div>
+		</div>
+		<!-- 
+			  end of #filterCriteria
+		 -->
+		
+		<table id="tableForRestaurant" border="1" cellpadding="10">
+			<tr>
+				<td>Restaurant Name</td>
+				<td>Rating</td>	
+				<td>Region</td>		
+				<td>Cuisine</td>
+				<td>Comments</td>
+
+			</tr>
+		</table>
+		<!-- 
+			  end of #tableForRestaurant
+		 -->	
+		 				
+		<div id="addOrEditRestaurantPage">
+	
+			<div><label>Restaurant:</label><input type="text" id="restaurantName" ></div>	
+			<div><label>Rating:</label>
+				<select id="restaurantRating">
+					<option value="0">0</option>
+					<option value="1">1</option>
+					<option value="2">2</option>
+					<option value="3">3</option>
+					<option value="4">4</option>
+					<option value="5">5</option>
+				</select> / 5</div>	
+				
+			<div><label>Region:</label>
+				<select id="restaurantRegion">
+					<option value="East Bay">East Bay</option>
+					<option value="San Francisco">San Francisco</option>
+					<option value="South Bay">South Bay</option>
+					<option value="Half Moon Bay">Half Moon Bay</option>
+					<option value="Milpitas">Milpitas</option>
+				</select>
+			</div>	
+			
+			<div><label>Cuisine:</label>
+				<form id="restaurantCuisine" >
+					<input type="hidden" id="modeToAddRestaurant" value="" />
+					<input type="radio" name="cuisine" value="Indian" id="Indian"/>Indian
+					<input type="radio" name="cuisine" value="Chinese" id="Chinese"/>Chinese
+					<input type="radio" name="cuisine" value="Fusion" id="Fusion"/>Fusion
+					<input type="radio" name="cuisine" value="Italian" id="Italian"/>Italian
+					<input type="radio" name="cuisine" value="Mexican" id="Mexican"/>Mexican
+					<input type="radio" name="cuisine" value="Thai" id="Thai"/>Thai
+					<input type="radio" name="cuisine" value="Morrocan" id="Morrocan"/>Morrocan
+					<input type="radio" name="cuisine" value="Cafe" id="Cafe"/>Cafe
+					<input type="radio" name="cuisine" value="Japanese" id="Japanese"/>Japanese	
+					<input type="radio" name="cuisine" value="French" id="Fusion"/>French
+					<input type="radio" name="cuisine" value="Spanish" id="Spanish"/>Spanish
+					<input type="radio" name="cuisine" value="Lebanese" id="Lebanese"/>Lebanese
+					<input type="radio" name="cuisine" value="Greek" id="Greek"/>Greek
+					<input type="radio" name="cuisine" value="American" id="American"/>American
+					<input type="radio" name="cuisine" value="Others" id="Others"/>Others
+		 		</form>						
+			</div>			
+			<p>Comments</p><textarea name="comments" id="restaurantComment" rows="1" cols="50"></textarea><br />
+			<input type="button" value="Submit" id="submitRestaurantInfo" onclick="submitRestaurant()"/>
+			<input type="button" value="cancel"  id="cancel" onclick="exitAddNewRestaurant()" />
+			<input type="button" value="delete"  id="delete" onclick="deleteRestaurant()" />
+
+	
+		</div>
+		<!-- 
+			  end of #addOrEditRestaurant
+		 -->
+		
+		<div id="overlay">
+			<div id="signUpBox">
+				<h2>New User Sign Up</h2>
+				<p>Username: <input id="signUpUserName" type="text"></p>
+				<p>Password: <input id="signUpPassWord" type="text"></p>
+				<input type="button" value="Submit" id="signUpBoxSubmit" onclick="submitSignUpInfo()"  />		
+			</div>
+		</div>
+	</div> 
+	<!-- 
+		end of #content div
+	 -->
+	
+</body>
+
+</html>
