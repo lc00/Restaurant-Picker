@@ -16,43 +16,47 @@
 		var arrayOfRestObj = [];
 		var answer;
 		
-		function submitSignUpInfo() {
-			var user = new Parse.User();
-			user.set("username", $("#signUpUserName").val());
-			user.set("password", $("#signUpPassWord").val());
-			user.signUp( null, {
-				success: function(user) {
-					userIsSignedUp(user);
+		function submitNewUserToParseForSignUp() {
+			emptyErrorDuringNewUserSignUp();
+			var user = new Parse.User();			
+			user.signUp({ 
+			username: $("#signUpUserName").val(),
+			password: $("#signUpPassWord").val()
+			}).then(function(user) {
+					userIsSignedUp(user); 
 				},
-				error: function(user, error){
-					alert(error.message);
-				}
-			});
-			//return $("#signUpUserName").val();
+				function(user){
+					showErrorDuringNewUserSignUp(user.message);					
+				});
 		}
-	
-		function queryFromParseAndAddRestaurant() {
+		
+
+		
+		function queryRestaurantFromParse() {
 			var RestaurantObj = Parse.Object.extend("RestaurantObj");
 			var query = new Parse.Query(RestaurantObj);
-			var listing;
 	
-			query.each(function(result){
-						
-				addRestaurantToTable(generateTableRowHtml(result));
-				addRestaurantToarrayOfRestObj(result);
-			
-			}).then(function(){
-				var currentUser = Parse.User.current();
-				if (currentUser) {
+			query.find().then(function(arrayOfRestaurant){
+				addRestaurantToWebsite(arrayOfRestaurant);
+				isUserLoggedIn();
+				},
+				function(error) {
+					alert(error);
+				});									
+		}
+		
+		function isUserLoggedIn() {
+			var currentUser = Parse.User.current();
+				if (currentUser) 
 					userIsLoggedIn(currentUser);
-				}
-			},
-			function(error) {
-				alert(error);
-			});	
-			
-			
-											
+		}
+		
+
+		function addRestaurantToWebsite(arrayOfRestaurant) {
+			arrayOfRestaurant.forEach(function(restaurant) {			
+				addRestaurantToTable(generateTableRowHtml(restaurant));
+				addRestaurantToarrayOfRestObj(restaurant);		
+				});
 		}
 
 		function generateTableRowHtml(data){
@@ -212,9 +216,18 @@
 		function userIsLoggedIn(name) {
 			clearLogInInformation();
 			hideLogInAndSignUp();
-			emptyUserName()
+			emptyUserName();
+			emptyErrorDuringNewUserSignUp();
 			showUserLoggedIn(name);
 			showEditButton();
+		}
+		
+		function emptyErrorDuringNewUserSignUp() {
+			$("#emptyErrorDuringNewUserSignUp").empty();
+		}
+		
+		function showErrorDuringNewUserSignUp(error) {
+			$("#emptyErrorDuringNewUserSignUp").append(error);
 		}
 		
 		function clearLogInInformation() {
@@ -406,14 +419,15 @@
 			emptyTableContent();
 			$("#tableForRestaurant").append(generateTableHeaderHtml());
 
-			queryFromParseAndAddRestaurant();
+			queryRestaurantFromParse();
+
 		
 		}
 	
 			
 		$(document).ready(function() {
-			queryFromParseAndAddRestaurant();
-					
+			queryRestaurantFromParse();
+								
 			$("#filterByRegion").change(applyFilter);
 				
 			$("#filterByCuisine").change(applyFilter);
@@ -571,7 +585,8 @@
 				<h2>New User Sign Up</h2>
 				<p>Username: <input id="signUpUserName" type="text"></p>
 				<p>Password: <input id="signUpPassWord" type="text"></p>
-				<input type="button" value="Submit" id="signUpBoxSubmit" onclick="submitSignUpInfo()"  />		
+				<input type="button" value="Submit" id="signUpBoxSubmit" onclick="submitNewUserToParseForSignUp()"  />	
+				<div id="emptyErrorDuringNewUserSignUp"></div>	
 			</div>
 		</div>
 	</div> 
