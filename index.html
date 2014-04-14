@@ -16,6 +16,16 @@
 		var arrayOfRestObj = [];
 		var answer;
 		
+// 		var RstrntPicker = function () {
+// 			var RstrntPicker = {
+// 				
+// 			
+// 			},
+// 			
+// 		
+// 		}
+		
+		
 		function submitNewUserToParseForSignUp() {
 			emptyErrorDuringNewUserSignUp();
 			var user = new Parse.User();			
@@ -29,8 +39,6 @@
 					showErrorDuringNewUserSignUp( user.message + "; from submitNewUserToParseForSignUp");					
 				});
 		}
-		
-
 		
 		function queryRestaurantFromParse() {
 			var RestaurantObj = Parse.Object.extend("RestaurantObj");
@@ -162,7 +170,7 @@
 			$("#" + restaurant.id).replaceWith(generateTableRowHtml(restaurant));
 			showEditButton();
 		}
-		
+	
 		function updateRestaurantToArrayOfRestObj(result) {
 			for (var i = 0; i < arrayOfRestObj.length; i++) {
 				if ( arrayOfRestObj[i].id === result.id ) {
@@ -171,16 +179,19 @@
 				}
 			}
 		
-		}
+		}		
 		
-		
-		function switchFromAddOrEditRestaurantPageToMainPage(){
+		function switchFromAddOrEditRestaurantPageToMainPage() {
 			hideDeleteButton();
 			hideAddOrEditRestaurantPage();
 			showFilterCriteria();
 			showTableForRestaurant();
 			
-			//need to clear out the input boxes and modeToAddRestaurant in addOrEditRestaurantPage;
+			emptyAllTextboxesValuesInAddOrEditRestaurantPage();
+
+		}		
+		
+		function emptyAllTextboxesValuesInAddOrEditRestaurantPage() {
 			$("#restaurantName").val("");
 			$("#restaurantRating").val("");
 			$("#restaurantRegion").val("");
@@ -188,15 +199,12 @@
 			$("#restaurantComment").val("");
 			$("#restaurantComment").val("");
 			
-			$("#modeToAddRestaurant").val("");
-
-
+			$("#modeToAddRestaurant").val("");		
 		}
 		
-		
 		function submitRestaurant() {
-			if($("#restaurantName").val() !== "" && $("#restaurantRating").val() !== "" 
-			&& $("#restaurantRegion").val() !== "" && $("input:radio[name=cuisine]:checked").length > 0) {
+			if($("#restaurantName").val() !== "" && $("#restaurantRating").val() !== null 
+			&& $("#restaurantRegion").val() !== null && $(".cuisine").is(":checked")) {
 									
 				if ( $("#modeToAddRestaurant").val() == "" )
 					createNSendRestaurantToParse();
@@ -236,11 +244,7 @@
 					alert(error);
 					console.log("createNSendRestaurantToParse");
 			});	
-		}
-
-
-		
-		
+		}	
 		
 		function addRestaurantToarrayOfRestObj(obj){
 			arrayOfRestObj.push(obj);
@@ -254,9 +258,10 @@
 			clearLogInInformation();
 			hideLogInAndSignUp();
 			emptyUserName();
-			emptyErrorDuringNewUserSignUp();
+			//emptyErrorDuringNewUserSignUp();
 			showUserLoggedIn(name);
 			showEditButton();
+			emptyAllTextboxesValuesInAddOrEditRestaurantPage();
 		}
 		
 		function emptyErrorDuringNewUserSignUp() {
@@ -586,21 +591,21 @@
 			<div><label>Cuisine:</label>
 				<form id="restaurantCuisine" >
 					<input type="hidden" id="modeToAddRestaurant" value="" />
-					<input type="radio" name="cuisine" value="Indian" id="Indian"/>Indian
-					<input type="radio" name="cuisine" value="Chinese" id="Chinese"/>Chinese
-					<input type="radio" name="cuisine" value="Fusion" id="Fusion"/>Fusion
-					<input type="radio" name="cuisine" value="Italian" id="Italian"/>Italian
-					<input type="radio" name="cuisine" value="Mexican" id="Mexican"/>Mexican
-					<input type="radio" name="cuisine" value="Thai" id="Thai"/>Thai
-					<input type="radio" name="cuisine" value="Morrocan" id="Morrocan"/>Morrocan
-					<input type="radio" name="cuisine" value="Cafe" id="Cafe"/>Cafe
-					<input type="radio" name="cuisine" value="Japanese" id="Japanese"/>Japanese	
-					<input type="radio" name="cuisine" value="French" id="Fusion"/>French
-					<input type="radio" name="cuisine" value="Spanish" id="Spanish"/>Spanish
-					<input type="radio" name="cuisine" value="Lebanese" id="Lebanese"/>Lebanese
-					<input type="radio" name="cuisine" value="Greek" id="Greek"/>Greek
-					<input type="radio" name="cuisine" value="American" id="American"/>American
-					<input type="radio" name="cuisine" value="Others" id="Others"/>Others
+					<input type="radio" class="cuisine" name="cuisine" value="Indian" id="Indian"/>Indian
+					<input type="radio" class="cuisine" name="cuisine" value="Chinese" id="Chinese"/>Chinese
+					<input type="radio" class="cuisine" name="cuisine" value="Fusion" id="Fusion"/>Fusion
+					<input type="radio" class="cuisine" name="cuisine" value="Italian" id="Italian"/>Italian
+					<input type="radio" class="cuisine" name="cuisine" value="Mexican" id="Mexican"/>Mexican
+					<input type="radio" class="cuisine" name="cuisine" value="Thai" id="Thai"/>Thai
+					<input type="radio" class="cuisine" name="cuisine" value="Morrocan" id="Morrocan"/>Morrocan
+					<input type="radio" class="cuisine" name="cuisine" value="Cafe" id="Cafe"/>Cafe
+					<input type="radio" class="cuisine" name="cuisine" value="Japanese" id="Japanese"/>Japanese	
+					<input type="radio" class="cuisine" name="cuisine" value="French" id="Fusion"/>French
+					<input type="radio" class="cuisine" name="cuisine" value="Spanish" id="Spanish"/>Spanish
+					<input type="radio" class="cuisine" name="cuisine" value="Lebanese" id="Lebanese"/>Lebanese
+					<input type="radio" class="cuisine" name="cuisine" value="Greek" id="Greek"/>Greek
+					<input type="radio" class="cuisine" name="cuisine" value="American" id="American"/>American
+					<input type="radio" class="cuisine" name="cuisine" value="Others" id="Others"/>Others
 		 		</form>						
 			</div>			
 			<p>Comments</p><textarea name="comments" id="restaurantComment" rows="1" cols="50"></textarea><br />
