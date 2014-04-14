@@ -41,7 +41,8 @@
 				isUserLoggedIn();
 				},
 				function(error) {
-					alert(error + "; from queryRestaurantFromParse");
+					alert(error);
+					console.log("queryRestaurantFromParse");
 				});									
 		}
 		
@@ -141,7 +142,9 @@
 					switchFromAddOrEditRestaurantPageToMainPage();  
 					},
 					function (error) {
-						alert(error + "; from updateRestaurantToParse");
+						alert(error);
+						console.log("from updateRestaurantToParse");
+
 					});
 		}
 		
@@ -165,7 +168,7 @@
 				if ( arrayOfRestObj[i].id === result.id ) {
 					arrayOfRestObj.splice(i, 1, result);
 					break;
-					}
+				}
 			}
 		
 		}
@@ -215,26 +218,29 @@
 				region:  $("#restaurantRegion").val(),
 				cuisine:  $("input:radio[name=cuisine]:checked").val(),	
 				comment:  $("#restaurantComment").val()					
-			}).then(function(result) {
-			
-				var region = $(".regionFilter").is(":checked");				
-				var cuisine = $("input:radio[name=cuisineFilter]:checked").val();
+			}).then(function(result) {	
+				var thereIsFilter = isThereRestaurantFilter();
 				
-		 		if ( region === false && cuisine === undefined ) {
+				if (thereIsFilter)
+					applyFilter();
+					
+				else {
 					addRestaurantToTable(generateTableRowHtml(result));
 					showEditButton();
 				}
-				else {
-					applyFilter();
-				}
 				
 				addRestaurantToarrayOfRestObj(result);
-				switchFromAddOrEditRestaurantPageToMainPage();
-			}, 
-			function (error){
-				alert(error + "; from createNSendRestaurantToParse");
+				switchFromAddOrEditRestaurantPageToMainPage();  
+				},
+				function (error){
+					alert(error);
+					console.log("createNSendRestaurantToParse");
 			});	
 		}
+
+
+		
+		
 		
 		function addRestaurantToarrayOfRestObj(obj){
 			arrayOfRestObj.push(obj);
@@ -318,7 +324,8 @@
 						
 					},
 					error: function(user, error) {
-						alert(error.message + "; from logIn");
+						alert(error.message);
+						console.log("logIn");
 					}
 				}
 			);
@@ -381,8 +388,7 @@
 			var region = $("input:checkbox:checked").map(function() {
 				return $(this).val();		
 			}).get();
-			
-			
+					
 			var cuisine = $("input:radio[name=cuisineFilter]:checked").val();
 
 			if ( region.length !== 0 ) 
@@ -391,18 +397,18 @@
 			if ( cuisine !== undefined ) 
 				query.equalTo("cuisine", cuisine );
 
-				emptyTableContent();
-				$("#tableForRestaurant").append(generateTableHeaderHtml());
+			emptyTableContent();
+			$("#tableForRestaurant").append(generateTableHeaderHtml());
 				
-				query.each(function(result) {
-					addRestaurantToTable(generateTableRowHtml(result));	
-					showEditButton();
-
-				}).then( null, 
-				function(error) {
-					alert(error + "; from applyFilter");
-				});
-				
+			query.each(function(result) {
+				addRestaurantToTable(generateTableRowHtml(result));	
+				showEditButton();
+				}, 
+				{error: function(error) {
+					alert(error);
+					console.log("applyFilter");
+				}
+			});		
 		}
 			
 		function generateTableHeaderHtml(){
@@ -420,27 +426,24 @@
 			var index;
 		
 			restaurantObj.id = restaurantId;
-			restaurantObj.destroy({
-				success: function(restaurant) {					
-					$("#" + restaurantId).remove();
-				
-					for (var i = 0; i < arrayOfRestObj.length; i++) {
-						if (arrayOfRestObj[i].id === restaurantId ) {
-							index = i;
-							break;										
-						}						
-					}
-				
-					arrayOfRestObj.splice(index, 1);
-								
-					switchFromAddOrEditRestaurantPageToMainPage();
-				},
-				error: function(restaurant, error) {
-					alert(error + "; from deleteRestaurant");
+			restaurantObj.destroy().then(function(restaurant){					
+				$("#" + restaurantId).remove();
+			
+				for (var i = 0; i < arrayOfRestObj.length; i++) {
+					if (arrayOfRestObj[i].id === restaurantId ) {
+						index = i;
+						break;										
+					}						
 				}
+			
+				arrayOfRestObj.splice(index, 1);
+							
+				switchFromAddOrEditRestaurantPageToMainPage();
+				},
+				function(restaurant, error) {
+					alert(error);
+					console.log("deleteRestaurant");
 			});
-		
-		
 		}
 
 		function removeFilter() {
