@@ -23,10 +23,10 @@
 			username: $("#signUpUserName").val(),
 			password: $("#signUpPassWord").val()
 			}).then(function(user) {
-					userIsSignedUp(user); 
+				userIsSignedUp(user); 
 				},
 				function(user){
-					showErrorDuringNewUserSignUp(user.message);					
+					showErrorDuringNewUserSignUp( user.message + "; from submitNewUserToParseForSignUp");					
 				});
 		}
 		
@@ -41,7 +41,7 @@
 				isUserLoggedIn();
 				},
 				function(error) {
-					alert(error);
+					alert(error + "; from queryRestaurantFromParse");
 				});									
 		}
 		
@@ -72,21 +72,42 @@
 		
 		
 		function editRestaurant(id){
+			switchFromMainPageToAddOrEditRestaurantPage();
+			
+			showDeleteButton();
+					
+			$("#modeToAddRestaurant").val(id);
+		
+			getRestaurantFromGlobalArray(id);
+			
+			populateRestaurantOntoAddOrEditPage(answer);
+		}
+		
+		function showDeleteButton() {
+			$("#deleteButton").show();
+		}
+		
+		function hideDeleteButton() {
+			$("#deleteButton").hide();
+		}
+		
+		function switchFromMainPageToAddOrEditRestaurantPage() {	
 			hideFilterCriteria();
 			hideTableForRestaurant();
 			showAddOrEditRestaurantPage();
-			$("#modeToAddRestaurant").val(id);
-		
-			getRestaurantAndPopulateEditPage(id);
 		}
 		
-		function getRestaurantAndPopulateEditPage(id) {
+		function getRestaurantFromGlobalArray(id) {		
+			for(var i = 0; i < arrayOfRestObj.length; i++) {
+				if ( arrayOfRestObj[i].id === id) {
+					answer = arrayOfRestObj[i];
+					break;
+				}
+			}
+		}	
+		
+		function populateRestaurantOntoAddOrEditPage(answer) {
 
-			arrayOfRestObj.forEach(function(object) {
-				if ( object.id === id)
-					answer = object;
-			});
-			
 			$("#restaurantName").val(answer.attributes.name);
  			$("#restaurantRating").val(answer.attributes.rating);
 			$("#restaurantRegion").val(answer.attributes.region);
@@ -99,7 +120,7 @@
 			var RestaurantObj = Parse.Object.extend("RestaurantObj");
 			var restaurantObj = new RestaurantObj;
 					
-				restaurantObj.id = answer.id;
+				restaurantObj = answer;
 				restaurantObj.save({
 					name:  $("#restaurantName").val(),
 					rating:  $("#restaurantRating").val(),
@@ -108,40 +129,50 @@
 					comment:  $("#restaurantComment").val()						
 				}).then(function(result) {
 				
-				var region = $(".regionFilter").is(":checked");				
-				var cuisine = $("input:radio[name=cuisineFilter]:checked").val();
+					var thereIsFilter = isThereRestaurantFilter();
+					
+					if (thereIsFilter)
+						applyFilter();
+					else
+						updateRestaurantTableRowHtml(result);
+ 					
+					
+					updateRestaurantToArrayOfRestObj(result);
+					switchFromAddOrEditRestaurantPageToMainPage();  
+					},
+					function (error) {
+						alert(error + "; from updateRestaurantToParse");
+					});
+		}
+		
+		function isThereRestaurantFilter() {
+			var filterForRegion = $(".regionFilter").is(":checked");				
+			var filterForCuisine = $(".cuisineFilter").is(":checked");
 				
-		 		if ( region === false && cuisine === undefined ) {
-					$("#" + result.id).replaceWith(generateTableRowHtml(result));
-					showEditButton();
-				}			
-				else
-					applyFilter();	
-					
-					
-				updateRestaurantToArrayOfRestObj(result);
-				exitAddNewRestaurant();
-				},
-				function (error) {
-					alert(error);
-				});
+			if ( filterForRegion === false && filterForCuisine === false ) 
+				return false;
+			else
+				return true;	
+		}
+
+		function updateRestaurantTableRowHtml(restaurant) {
+			$("#" + restaurant.id).replaceWith(generateTableRowHtml(restaurant));
+			showEditButton();
 		}
 		
 		function updateRestaurantToArrayOfRestObj(result) {
 			for (var i = 0; i < arrayOfRestObj.length; i++) {
-				if ( arrayOfRestObj[i].id === result.id ) 
+				if ( arrayOfRestObj[i].id === result.id ) {
 					arrayOfRestObj.splice(i, 1, result);
+					break;
+					}
 			}
 		
 		}
 		
-		function enterAddNewRestaurant() {
-			hideFilterCriteria();
-			hideTableForRestaurant();
-			showAddOrEditRestaurantPage();
-		}
 		
-		function exitAddNewRestaurant(){
+		function switchFromAddOrEditRestaurantPageToMainPage(){
+			hideDeleteButton();
 			hideAddOrEditRestaurantPage();
 			showFilterCriteria();
 			showTableForRestaurant();
@@ -198,10 +229,10 @@
 				}
 				
 				addRestaurantToarrayOfRestObj(result);
-				exitAddNewRestaurant();
+				switchFromAddOrEditRestaurantPageToMainPage();
 			}, 
 			function (error){
-				alert(error);
+				alert(error + "; from createNSendRestaurantToParse");
 			});	
 		}
 		
@@ -287,7 +318,7 @@
 						
 					},
 					error: function(user, error) {
-						alert(error.message);
+						alert(error.message + "; from logIn");
 					}
 				}
 			);
@@ -369,7 +400,7 @@
 
 				}).then( null, 
 				function(error) {
-					alert(error);
+					alert(error + "; from applyFilter");
 				});
 				
 		}
@@ -402,10 +433,10 @@
 				
 					arrayOfRestObj.splice(index, 1);
 								
-					exitAddNewRestaurant();
+					switchFromAddOrEditRestaurantPageToMainPage();
 				},
 				error: function(restaurant, error) {
-					alert(error);
+					alert(error + "; from deleteRestaurant");
 				}
 			});
 		
@@ -461,7 +492,7 @@
 		    <div id="loggedIn">
 				<li><span id="welcomeUser"></span></li>
 				<input id="userLogOut"type="button" value="Log Out" onclick="logOut()"/>  <br /><br />
-				<li><input id="addRestaurantButton" type="button" value="Add New Restaurant" onclick="enterAddNewRestaurant()"/></li>
+				<li><input id="addRestaurantButton" type="button" value="Add New Restaurant" onclick="switchFromMainPageToAddOrEditRestaurantPage()"/></li>
 		    </div>
 		  </form>
  		</ul>
@@ -487,21 +518,21 @@
 			<div id="cuisine">
 			  Cuisine:
 			  <form id="filterByCuisine">
-				<input type="radio" name="cuisineFilter" value="Indian" />Indian
-				<input type="radio" name="cuisineFilter" value="Chinese" />Chinese
-				<input type="radio" name="cuisineFilter" value="Fusion" />Fusion
-				<input type="radio" name="cuisineFilter" value="Italian" />Italian
-				<input type="radio" name="cuisineFilter" value="Mexican" />Mexican
-				<input type="radio" name="cuisineFilter" value="Thai" />Thai
-				<input type="radio" name="cuisineFilter" value="Morrocan" />Morrocan
-				<input type="radio" name="cuisineFilter" value="Cafe" />Cafe
-				<input type="radio" name="cuisineFilter" value="Japanese" />Japanese	
-				<input type="radio" name="cuisineFilter" value="French" />French
-				<input type="radio" name="cuisineFilter" value="Spanish" />Spanish
-				<input type="radio" name="cuisineFilter" value="Lebanese" />Lebanese
-				<input type="radio" name="cuisineFilter" value="Greek" />Greek
-				<input type="radio" name="cuisineFilter" value="American" />American
-				<input type="radio" name="cuisineFilter" value="Others" />Others
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Indian" />Indian
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Chinese" />Chinese
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Fusion" />Fusion
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Italian" />Italian
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Mexican" />Mexican
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Thai" />Thai
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Morrocan" />Morrocan
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Cafe" />Cafe
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Japanese" />Japanese	
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="French" />French
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Spanish" />Spanish
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Lebanese" />Lebanese
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Greek" />Greek
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="American" />American
+				<input type="radio" class="cuisineFilter" name="cuisineFilter" value="Others" />Others
 			  </form>
 			</div>
 			  <input id="removeFilterButton" type="button" name="noFilters" value="Remove Filters" onclick="removeFilter()" /> <br /><br />
@@ -571,8 +602,8 @@
 			</div>			
 			<p>Comments</p><textarea name="comments" id="restaurantComment" rows="1" cols="50"></textarea><br />
 			<input type="button" value="Submit" id="submitRestaurantInfo" onclick="submitRestaurant()"/>
-			<input type="button" value="cancel"  id="cancel" onclick="exitAddNewRestaurant()" />
-			<input type="button" value="delete"  id="delete" onclick="deleteRestaurant()" />
+			<input type="button" value="cancel"  id="cancel" onclick="switchFromAddOrEditRestaurantPageToMainPage()" />
+			<input type="button" value="delete"  id="deleteButton" onclick="deleteRestaurant()" />
 
 	
 		</div>
